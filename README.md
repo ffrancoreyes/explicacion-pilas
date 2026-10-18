@@ -10,4 +10,4 @@ Una herramienta visual e interactiva para entender y practicar cómo funcionan l
 
 Creado por [@ffrancoreyes](https://github.com/ffrancoreyes).
 
->> Si, este repositorio fue vibecodeado :D <<
+> Si, este repositorio fue vibecodeado :D
