@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pilas - Stacks</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f1f5f9;
+            color: #111827;
+            font-family: Consolas, 'JetBrains Mono', monospace;
+        }
+
+        /* Caja del nodo más grande e idéntica al dibujo del apunte */
+        .nodo-box {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            width: 196px;
+            height: 76px;
+            border: 3px solid #000000;
+            background-color: #ffffff;
+            position: relative;
+            box-shadow: 3px 3px 0px #000000;
+        }
+
+        .nodo-info {
+            border-right: 3px solid #000000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .nodo-sgte {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #000000;
+            position: relative;
+        }
+
+        /* Animación suave al apilar (push) un nuevo nodo en la cima */
+        @keyframes fadeSlideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-18px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-nodo {
+            animation: fadeSlideDown 0.25s ease-out forwards;
+        }
+
+        .neo-shadow {
+            box-shadow: 4px 4px 0px #000000;
+        }
+
+        .neo-shadow-sm {
+            box-shadow: 2px 2px 0px #000000;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- CABECERA MEJORADA -->
+    <header id="mainHeader" class="bg-white border-b-[3px] border-black sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            
+            <!-- Marca y Título -->
+            <div class="flex items-center gap-3.5">
+                <div class="w-11 h-11 bg-black text-white flex flex-col items-center justify-center font-extrabold text-xs leading-none border-2 border-black neo-shadow-sm shrink-0">
+                    <span class="text-[10px] text-emerald-400 mt-0.5">C++</span>
+                </div>
+                <div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <h1 class="text-lg sm:text-xl font-extrabold text-black tracking-tight">
+                            Pilas (Stacks)
+                        </h1>
+                    </div>
+                    <p class="text-xs text-neutral-600 mt-0.5">
+                        Operaciones <span class="text-green-700 font-bold">push()</span> y <span class="text-sky-600 font-bold">pop()</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Pestañas Centrales: Pizarra Interactiva vs. Explicar Pilas (Presentación) -->
+            <div class="flex flex-wrap items-center gap-2 bg-neutral-100 p-1.5 border-2 border-black self-start lg:self-auto">
+                <button id="tabPizarraBtn" onclick="switchView('pizarra')" class="px-3.5 py-1.5 text-xs sm:text-sm font-extrabold border-2 border-black bg-black text-white cursor-pointer transition">
+                    1. Pizarra Interactiva
+                </button>
+                <button id="tabExplicarBtn" onclick="switchView('explicar')" class="px-3.5 py-1.5 text-xs sm:text-sm font-extrabold border-2 border-transparent text-black hover:bg-white cursor-pointer transition flex items-center gap-1.5">
+                    <span class="inline-block w-2 h-2 rounded-full bg-green-600"></span>
+                    2. Explicar Pilas (Paso a Paso)
+                </button>
+            </div>
+
+            <!-- Botones de Acción Rápida -->
+            <div class="flex flex-wrap items-center gap-2">
+                <button id="btnMaximizePizarra" onclick="toggleMaximizePizarra()" class="px-3 py-1.5 bg-amber-300 hover:bg-amber-400 text-black text-xs font-extrabold border-2 border-black neo-shadow-sm cursor-pointer transition flex items-center gap-1.5" title="Ocultar todo y dejar solo las pizarras para operar">
+                    <span>⛶</span> Maximizar Pizarra
+                </button>
+                <button id="btnAddStack" onclick="addNewStack()" class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold border-2 border-black neo-shadow-sm cursor-pointer transition">
+                    + Nueva Pila
+                </button>
+                <button id="toggleMainBtn" onclick="toggleMainPanel()" class="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold border-2 border-black neo-shadow-sm cursor-pointer transition">
+                    Mostrar main()
+                </button>
+                <button onclick="toggleApunteModal()" class="px-3 py-1.5 bg-white hover:bg-neutral-100 text-black text-xs font-bold border-2 border-black neo-shadow-sm cursor-pointer transition">
+                    Apunte C++
+                </button>
+                <button onclick="resetAll()" class="px-3 py-1.5 bg-white hover:bg-red-50 text-red-700 text-xs font-bold border-2 border-black neo-shadow-sm cursor-pointer transition">
+                    Reiniciar
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main id="mainContainer" class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col gap-6 transition-all">
+
+        <!-- =================================================================== -->
+        <!-- VISTA 1: PIZARRA INTERACTIVA DE PRÁCTICA                            -->
+        <!-- =================================================================== -->
+        <div id="viewPizarra" class="flex flex-col gap-6">
+
+            <!-- BARRA SUPERIOR: CAJA "retorno" + CONTROLES EN MODO MAXIMIZADO -->
+            <section class="bg-white border-2 border-black neo-shadow p-4 flex flex-col lg:flex-row items-center justify-between gap-4">
+                
+                <!-- Dibujo: retorno ───► [ info ] -->
+                <div class="flex flex-wrap items-center gap-4">
+                    <div class="flex items-center">
+                        <div class="flex flex-col items-center mr-1.5">
+                            <span class="text-xs sm:text-sm font-bold text-black leading-none mb-1">retorno (dato rescatado)</span>
+                            <svg width="86" height="20" viewBox="0 0 86 20" class="overflow-visible">
+                                <line x1="0" y1="10" x2="78" y2="10" stroke="#15803d" stroke-width="3.2" />
+                                <polyline points="68,4 80,10 68,16" fill="none" stroke="#15803d" stroke-width="3.2" stroke-linejoin="round" />
+                            </svg>
+                        </div>
+                        <!-- Caja verde [ info ] -->
+                        <div id="retornoBox" class="w-36 h-16 border-[3px] border-green-700 bg-white flex flex-col items-center justify-center relative">
+                            <span class="text-[11px] text-neutral-500 font-bold leading-none">int retorno</span>
+                            <span id="retornoValue" class="text-2xl font-bold text-black leading-tight">vacío</span>
+                        </div>
+                    </div>
+
+                    <!-- Botones para mandar el dato rescatado a una pila secundaria/auxiliar para no perderlo -->
+                    <div class="flex flex-col gap-1.5 ml-1">
+                        <span class="text-xs font-bold text-neutral-700">Enviar <code class="text-green-800">retorno</code> a otra pila para no perder el dato:</span>
+                        <div id="sendRetornoButtons" class="flex flex-wrap items-center gap-2">
+                            <!-- Se llena dinámicamente -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Explicación estilo apunte de lo que acaba de pasar (se oculta al maximizar) -->
+                <div id="stepExplanation" class="text-xs sm:text-sm bg-neutral-50 border-2 border-neutral-300 px-4 py-2.5 text-neutral-800 w-full lg:w-auto lg:max-w-md">
+                    <strong>Regla de oro:</strong> Las pilas <strong>no se recorren</strong>. Al hacer <code class="font-bold">pop</code> rescatás el dato en <code class="font-bold">retorno</code> y lo apilás en una <strong>Pila Auxiliar</strong> para no perderlo.
+                </div>
+
+                <!-- Controles rápidos visibles únicamente cuando la pizarra está maximizada -->
+                <div id="maximizedToolbar" class="hidden flex-wrap items-center gap-2 w-full lg:w-auto justify-end border-t-2 lg:border-t-0 pt-3 lg:pt-0 border-black">
+                    <button onclick="addNewStack()" class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold border-2 border-black neo-shadow-sm cursor-pointer transition">
+                        + Nueva Pila
+                    </button>
+                    <button onclick="resetAll()" class="px-3 py-1.5 bg-white hover:bg-red-50 text-red-700 text-xs font-bold border-2 border-black neo-shadow-sm cursor-pointer transition">
+                        Reiniciar
+                    </button>
+                    <button onclick="toggleMaximizePizarra()" class="px-3.5 py-1.5 bg-amber-300 hover:bg-amber-400 text-black text-xs font-extrabold border-2 border-black neo-shadow-sm cursor-pointer transition flex items-center gap-1.5">
+                        <span>✕</span> Salir de Modo Maximizado
+                    </button>
+                </div>
+            </section>
+
+            <!-- PIZARRA CENTRAL: PILAS OCUPAN TODO EL ANCHO DE ENTRADA + MAIN() OCULTO POR DEFECTO -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+                <!-- ZONA DE PILAS DIBUJADAS (12 COLUMNAS CUANDO MAIN ESTÁ OCULTO) -->
+                <section id="stacksContainer" class="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Se dibuja cada pila aquí -->
+                </section>
+
+                <!-- CÓDIGO MAIN() LIMPIO (OCULTO DE ENTRADA) -->
+                <aside id="mainCodeSidebar" class="hidden lg:col-span-4 bg-white border-2 border-black neo-shadow p-4 sticky top-24">
+                    <div class="flex items-center justify-between pb-2.5 mb-3 border-b-2 border-black">
+                        <div class="flex items-center gap-2">
+                            <span class="font-extrabold text-sm">Código C++ (main)</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="copyCode()" id="copyBtn" class="px-2.5 py-1 bg-black text-white text-xs font-bold cursor-pointer hover:bg-neutral-800">
+                                Copiar C++
+                            </button>
+                            <button onclick="clearCodeHistory()" class="px-2 py-1 bg-neutral-100 hover:bg-neutral-200 text-black text-xs border border-black cursor-pointer" title="Limpiar líneas">
+                                Limpiar
+                            </button>
+                            <button onclick="toggleMainPanel()" class="px-2 py-1 bg-amber-100 hover:bg-amber-200 text-black text-xs font-bold border border-black cursor-pointer" title="Ocultar panel main()">
+                                Ocultar ✕
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="codeBox" class="text-xs sm:text-sm leading-relaxed overflow-y-auto max-h-[440px] whitespace-pre font-mono bg-neutral-50 p-3.5 border border-neutral-300"></div>
+                </aside>
+            </div>
+        </div>
+
+        <!-- =================================================================== -->
+        <!-- VISTA 2: APARTADO "EXPLICAR PILAS" (PRESENTACIÓN PASO A PASO)       -->
+        <!-- =================================================================== -->
+        <section id="viewExplicar" class="hidden flex-col gap-6">
+            
+            <!-- Selector de algoritmo y caso a proyectar -->
+            <div class="bg-white border-2 border-black neo-shadow p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                    <span class="text-xs font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2 py-0.5 border border-black">Modo Clase / Presentación</span>
+                    <h2 class="text-lg sm:text-xl font-extrabold text-black mt-1">
+                        Paso a Paso: ¿Cómo funcionan <code class="text-green-700">push()</code> y <code class="text-sky-600">pop()</code>?
+                    </h2>
+                </div>
+
+                <!-- Botones de elección de presentación -->
+                <div class="flex flex-wrap gap-2">
+                    <button id="presBtn_push_nodos" onclick="selectPresentation('push_nodos')" class="px-3 py-2 text-xs sm:text-sm font-extrabold border-2 border-black cursor-pointer transition">
+                        A) push (Pila con nodos)
+                    </button>
+                    <button id="presBtn_push_vacia" onclick="selectPresentation('push_vacia')" class="px-3 py-2 text-xs sm:text-sm font-extrabold border-2 border-black cursor-pointer transition">
+                        B) push (Pila vacía)
+                    </button>
+                    <button id="presBtn_pop_varios" onclick="selectPresentation('pop_varios')" class="px-3 py-2 text-xs sm:text-sm font-extrabold border-2 border-black cursor-pointer transition">
+                        C) pop (Desapilar con aux)
+                    </button>
+                    <button id="presBtn_pop_uno" onclick="selectPresentation('pop_uno')" class="px-3 py-2 text-xs sm:text-sm font-extrabold border-2 border-black cursor-pointer transition">
+                        D) pop (Último nodo a NULL)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Cuerpo de la diapositiva: Pizarra grande a la izquierda + Explicación y Código a la derecha -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                
+                <!-- Lienzo visual del paso actual (7 columnas) -->
+                <div class="lg:col-span-7 bg-white border-2 border-black neo-shadow p-5 flex flex-col justify-between min-h-[480px]">
+                    <div class="flex items-center justify-between border-b-2 border-black pb-3 mb-4">
+                        <span id="presSlideBadge" class="px-2.5 py-1 bg-black text-white text-xs sm:text-sm font-extrabold">
+                            Paso 1
+                        </span>
+                        <span id="presSlideSubtitle" class="text-xs sm:text-sm font-bold text-neutral-600">
+                            Representación en memoria
+                        </span>
+                    </div>
+
+                    <!-- Dibujo dinámico grande -->
+                    <div id="presDiagramCanvas" class="flex-1 flex items-center justify-center py-4 overflow-x-auto">
+                        <!-- Se inyecta el diagrama del paso -->
+                    </div>
+
+                    <!-- Controles de navegación tipo diapositiva -->
+                    <div class="pt-4 mt-4 border-t-2 border-black flex flex-wrap items-center justify-between gap-3">
+                        <button id="presPrevBtn" onclick="prevSlide()" class="px-4 py-2 bg-white hover:bg-neutral-100 text-black font-extrabold text-xs sm:text-sm border-2 border-black neo-shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
+                            ← Paso Anterior
+                        </button>
+
+                        <!-- Indicadores de puntos -->
+                        <div id="presStepDots" class="flex items-center gap-2"></div>
+
+                        <button id="presNextBtn" onclick="nextSlide()" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs sm:text-sm border-2 border-black neo-shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
+                            Siguiente Paso →
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Explicación teórica del apunte y línea C++ iluminada (5 columnas) -->
+                <div class="lg:col-span-5 bg-white border-2 border-black neo-shadow p-5 flex flex-col justify-between gap-4">
+                    <div>
+                        <div class="text-xs font-bold uppercase text-neutral-500 mb-1">Explicación del Apunte</div>
+                        <h3 id="presStepTitle" class="text-base sm:text-lg font-extrabold text-black border-b-2 border-black pb-2 mb-3">
+                            Título del paso
+                        </h3>
+                        <div id="presStepText" class="text-sm leading-relaxed text-neutral-800 bg-amber-50/70 border-2 border-black p-3.5 mb-5">
+                            Descripción paso a paso...
+                        </div>
+
+                        <div class="text-xs font-bold uppercase text-neutral-500 mb-1.5">Código C++ ejecutándose en este paso:</div>
+                        <div id="presCodeHighlight" class="bg-neutral-900 text-neutral-100 p-3.5 text-xs sm:text-sm font-mono overflow-x-auto space-y-1 border-2 border-black">
+                            <!-- Código con línea resaltada -->
+                        </div>
+                    </div>
+
+                    <div class="bg-neutral-100 border border-neutral-400 p-3 text-xs text-neutral-700">
+                        <strong>Tip para clase:</strong> Podés usar las flechas del teclado (<kbd class="px-1.5 py-0.5 bg-white border border-black font-bold">←</kbd> y <kbd class="px-1.5 py-0.5 bg-white border border-black font-bold">→</kbd>) para avanzar o retroceder la explicación.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =================================================================== -->
+        <!-- APARTADO INDEPENDIENTE: REFERENCIAS DEL APUNTE EXPLICADAS           -->
+        <!-- =================================================================== -->
+        <section id="referenciasSection" class="bg-white border-2 border-black neo-shadow p-4 sm:p-5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 mb-4 border-b-2 border-black gap-2">
+                <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 bg-black text-white text-xs font-extrabold">GUÍA VISUAL</span>
+                    <h2 class="text-sm sm:text-base font-extrabold text-black">
+                        Pilas - Stacks (LIFO: Last In, First Out)
+                    </h2>
+                </div>
+                <span class="text-xs text-neutral-600">
+                    Significado de cada puntero, color y regla de parcial en los dibujos
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 text-xs">
+                <!-- Referencia 1: pila = xxx3 -->
+                <div class="border-2 border-black p-3 bg-emerald-50/50 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center gap-1.5 mb-2">
+                            <span class="px-1.5 py-0.5 border-2 border-green-700 bg-white font-extrabold text-green-800 text-xs">pila = xxx3 ───►</span>
+                        </div>
+                        <p class="text-neutral-800 leading-relaxed">
+                            <strong>Puntero a la Cima (Tope):</strong> apunta siempre al <strong>último nodo que ingresó</strong> (arriba de todo). Tanto <code class="font-bold">push()</code> como <code class="font-bold">pop()</code> operan por este único extremo.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Referencia 2: aux = xxx3 (flecha celeste) -->
+                <div class="border-2 border-black p-3 bg-sky-50/40 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="px-1.5 py-0.5 border-2 border-sky-500 bg-white font-extrabold text-sky-700 text-xs">aux = xxx3 ───►</span>
+                        </div>
+                        <p class="text-neutral-800 leading-relaxed">
+                            <strong>Puntero auxiliar celeste:</strong> en <code class="font-bold">pop()</code> toma la dirección de la cima (<code class="font-bold">aux = pila;</code>) para poder avanzar <code class="font-bold">pila = aux-&gt;sgte;</code> y liberar con <code class="font-bold">delete aux;</code>.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Referencia 3: retorno -->
+                <div class="border-2 border-black p-3 bg-green-50/40 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center gap-1.5 mb-2">
+                            <span class="px-1.5 py-0.5 border-2 border-green-700 bg-white font-extrabold text-green-800 text-xs">int retorno</span>
+                        </div>
+                        <p class="text-neutral-800 leading-relaxed">
+                            <strong>Dato rescatado:</strong> guarda <code class="font-bold">aux-&gt;info</code> antes de hacer <code class="font-bold">delete aux;</code>. Si hacés otro <code class="font-bold">pop()</code> sin pasarlo a una pila auxiliar, lo pisás.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Referencia 4: *sgte (flecha azul) -->
+                <div class="border-2 border-black p-3 bg-indigo-50/40 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="px-1.5 py-0.5 border-2 border-indigo-700 bg-white font-extrabold text-indigo-800 text-xs">*sgte ───►</span>
+                        </div>
+                        <p class="text-neutral-800 leading-relaxed">
+                            <strong>Enlace hacia abajo:</strong> cada nuevo nodo se conecta al que estaba antes en la cima mediante <code class="font-bold">nuevo_nodo-&gt;sgte = pila;</code>. El primero que entró apunta a <code class="font-bold">NULL</code>.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Referencia 5: Regla de Parcial (No se recorren) -->
+                <div class="border-2 border-black p-3 bg-amber-50/60 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="px-1.5 py-0.5 border-2 border-red-600 bg-white font-extrabold text-red-700 text-xs">¡NO SE RECORREN!</span>
+                        </div>
+                        <p class="text-neutral-800 leading-relaxed">
+                            <strong>Regla de Parcial:</strong> jamás digas "recorrer una pila". Para ver sus elementos sin perderlos, sacalos con <code class="font-bold">pop(pila)</code> y guardalos con <code class="font-bold">push(pilaAux, dato)</code>.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- =================================================================== -->
+    <!-- FOOTER CON REDES SOCIALES (MISMO ESTILO VISUAL)                     -->
+    <!-- =================================================================== -->
+    <footer id="mainFooter" class="bg-white border-t-[3px] border-black mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+            
+            <!-- Marca / Autor -->
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 bg-black text-emerald-400 flex items-center justify-center font-extrabold text-xs border-2 border-black neo-shadow-sm">
+                    &lt;/&gt;
+                </div>
+                <div>
+                    <p class="text-xs sm:text-sm font-extrabold text-black leading-tight">
+                        Pilas (Stacks)
+                    </p>
+                    <p class="text-[11px] text-neutral-600">
+                        creado por @ffrancoreyes
+                    </p>
+                </div>
+            </div>
+
+            <!-- Enlaces a Redes Sociales (Editable con tus usuarios/URLs) -->
+            <div class="flex flex-wrap items-center justify-center gap-2.5">
+                <!-- Instagram -->
+                <a href="https://instagram.com/ffrancoreyes" target="_blank" rel="noopener noreferrer" 
+                   class="px-3 py-1.5 bg-pink-100 hover:bg-pink-200 text-black text-xs font-extrabold border-2 border-black neo-shadow-sm transition flex items-center gap-1.5">
+                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                    </svg>
+                    <span>Instagram</span>
+                </a>
+
+                <!-- GitHub -->
+                <a href="https://github.com/ffrancoreyes" target="_blank" rel="noopener noreferrer" 
+                   class="px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-black text-xs font-extrabold border-2 border-black neo-shadow-sm transition flex items-center gap-1.5">
+                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+                    </svg>
+                    <span>GitHub</span>
+                </a>
+
+                <!-- LinkedIn -->
+                <a href="https://www.linkedin.com/in/fabrizziofrancoreyes/" target="_blank" rel="noopener noreferrer" 
+                   class="px-3 py-1.5 bg-sky-100 hover:bg-sky-200 text-black text-xs font-extrabold border-2 border-black neo-shadow-sm transition flex items-center gap-1.5">
+                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
+                        <rect x="2" y="9" width="4" height="12"></rect>
+                        <circle cx="4" cy="4" r="2"></circle>
+                    </svg>
+                    <span>LinkedIn</span>
+                </a>
+
+                <!-- YouTube -->
+                <a href="https://youtube.com/@ffrancoreyesUTN" target="_blank" rel="noopener noreferrer" 
+                   class="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-black text-xs font-extrabold border-2 border-black neo-shadow-sm transition flex items-center gap-1.5">
+                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"></path>
+                        <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"></polygon>
+                    </svg>
+                    <span>YouTube</span>
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- MODAL CON EL APUNTE DE PILAS Y EL CÓDIGO C++ -->
+    <div id="apunteModal" class="fixed inset-0 z-50 hidden bg-black/50 flex items-center justify-center p-4">
+        <div class="bg-white border-2 border-black max-w-3xl w-full p-5 max-h-[90vh] overflow-y-auto neo-shadow">
+            <div class="flex items-center justify-between pb-3 mb-4 border-b-2 border-black">
+                <h2 class="font-bold text-base sm:text-lg">Resumen del Apunte: 06 - Pilas - Stacks (LIFO)</h2>
+                <button onclick="toggleApunteModal()" class="px-2.5 py-1 bg-black text-white text-xs font-bold cursor-pointer">
+                    Cerrar ✕
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm mb-4">
+                <div class="border-2 border-black p-3 bg-neutral-50">
+                    <h3 class="font-bold text-green-800 mb-2 underline">Push / apilar / insertarPila</h3>
+                    <ol class="list-decimal list-inside space-y-1.5">
+                        <li>Crear el nodo y asignar el dato:<br><code class="bg-white px-1 border">Nodo *nuevo_nodo = new Nodo();</code><br><code class="bg-white px-1 border">nuevo_nodo-&gt;info = info;</code></li>
+                        <li>Conectar al <code class="font-bold">*sgte</code> a través del puntero pila:<br><code class="bg-white px-1 border">nuevo_nodo-&gt;sgte = pila;</code></li>
+                        <li>Mover el puntero <code class="font-bold">pila</code> al inicio de todo (nueva cima):<br><code class="bg-white px-1 border">pila = nuevo_nodo;</code></li>
+                    </ol>
+                </div>
+
+                <div class="border-2 border-black p-3 bg-neutral-50">
+                    <h3 class="font-bold text-sky-700 mb-2 underline">Pop / desapilar / quitarPila</h3>
+                    <ol class="list-decimal list-inside space-y-1.5">
+                        <li>Crear un puntero <code class="font-bold">aux</code> que tome la dirección de la pila:<br><code class="bg-white px-1 border">Nodo *aux = pila;</code></li>
+                        <li>Rescatar el dato para luego retornarlo:<br><code class="bg-white px-1 border">int retorno = aux-&gt;info;</code></li>
+                        <li>Mover el puntero <code class="font-bold">pila</code> al <code class="font-bold">*sgte</code>:<br><code class="bg-white px-1 border">pila = aux-&gt;sgte;</code></li>
+                        <li>Liberar la memoria con <code class="font-bold">aux</code> y retornar el valor guardado:<br><code class="bg-white px-1 border">delete aux; return retorno;</code></li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="border-2 border-black bg-amber-50 p-3 text-xs sm:text-sm mb-4">
+                <strong>Consejos clave para el Parcial:</strong>
+                <ul class="list-disc list-inside mt-1 space-y-1">
+                    <li><strong>Las pilas NO se recorren</strong> (está prohibido decir que "recorrés una pila").</li>
+                    <li>Para mostrar o buscar elementos sin perderlos, se desapilan con <code class="font-bold">retorno = pop(pila)</code> y se van guardando en una <code class="font-bold">pilaAux</code> con <code class="font-bold">push(pilaAux, retorno)</code>.</li>
+                </ul>
+            </div>
+
+            <pre class="bg-neutral-900 text-neutral-100 p-3 text-xs overflow-x-auto leading-relaxed">struct Nodo{
+    int info;
+    Nodo *sgte;
+};
+
+void push(Nodo *&amp;pila, int info){
+    Nodo *nuevo_nodo = new Nodo();
+    nuevo_nodo-&gt;info = info;
+    nuevo_nodo-&gt;sgte = pila;
+    pila = nuevo_nodo;
+}
+
+int pop(Nodo *&amp;pila){
+    Nodo *aux = pila;
+    int retorno = aux-&gt;info;
+    pila = aux-&gt;sgte;
+    delete aux;
+    return retorno;
+}</pre>
+        </div>
+    </div>
+
+    <script>
+        let stacks = [];
+        let retornoVal = null;
+        let usedRetornoVar = false;
+        let codeLines = [];
+        let addrCounter = 1;
+        let stackCounter = 1;
+        let lastCreatedNodeId = null;
+
+        // Estado para mostrar en cámara lenta el puntero celeste "aux = xxxN" y el movimiento de "pila" al hacer pop()
+        let poppingState = null; // { stackId, nodeId }
+
+        // Estado de interfaz: main() inicia oculto de entrada y vista activa en pizarra
+        let showMainCode = false;
+        let isPizarraMaximized = false;
+        let currentView = 'pizarra'; // 'pizarra' | 'explicar'
+        let currentPresKey = 'push_nodos';
+        let currentSlideIdx = 0;
+
+        function toggleMaximizePizarra() {
+            if (currentView !== 'pizarra') {
+                switchView('pizarra');
+            }
+
+            isPizarraMaximized = !isPizarraMaximized;
+
+            const headerEl = document.getElementById('mainHeader');
+            const refSectionEl = document.getElementById('referenciasSection');
+            const footerEl = document.getElementById('mainFooter');
+            const stepExpEl = document.getElementById('stepExplanation');
+            const maxToolbarEl = document.getElementById('maximizedToolbar');
+            const mainContainerEl = document.getElementById('mainContainer');
+            const sidebarEl = document.getElementById('mainCodeSidebar');
+            const sContainerEl = document.getElementById('stacksContainer');
+
+            if (isPizarraMaximized) {
+                headerEl.classList.add('hidden');
+                refSectionEl.classList.add('hidden');
+                footerEl.classList.add('hidden');
+                stepExpEl.classList.add('hidden');
+
+                maxToolbarEl.classList.remove('hidden');
+                maxToolbarEl.classList.add('flex');
+
+                sidebarEl.classList.add('hidden');
+                sContainerEl.className = 'lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6';
+                mainContainerEl.className = 'flex-1 max-w-full w-full mx-auto p-3 sm:p-5 flex flex-col gap-4 transition-all';
+            } else {
+                headerEl.classList.remove('hidden');
+                refSectionEl.classList.remove('hidden');
+                footerEl.classList.remove('hidden');
+                stepExpEl.classList.remove('hidden');
+
+                maxToolbarEl.classList.add('hidden');
+                maxToolbarEl.classList.remove('flex');
+
+                mainContainerEl.className = 'flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col gap-6 transition-all';
+
+                if (showMainCode) {
+                    sidebarEl.classList.remove('hidden');
+                    sContainerEl.className = 'lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6';
+                } else {
+                    sidebarEl.classList.add('hidden');
+                    sContainerEl.className = 'lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6';
+                }
+            }
+        }
+
+        function switchView(view) {
+            currentView = view;
+            const pizarraEl = document.getElementById('viewPizarra');
+            const explicarEl = document.getElementById('viewExplicar');
+            const tabPizarraBtn = document.getElementById('tabPizarraBtn');
+            const tabExplicarBtn = document.getElementById('tabExplicarBtn');
+            const btnAddStack = document.getElementById('btnAddStack');
+            const toggleMainBtn = document.getElementById('toggleMainBtn');
+            const btnMaximizePizarra = document.getElementById('btnMaximizePizarra');
+
+            if (view === 'pizarra') {
+                pizarraEl.classList.remove('hidden');
+                explicarEl.classList.add('hidden');
+                explicarEl.classList.remove('flex');
+
+                tabPizarraBtn.className = 'px-3.5 py-1.5 text-xs sm:text-sm font-extrabold border-2 border-black bg-black text-white cursor-pointer transition';
+                tabExplicarBtn.className = 'px-3.5 py-1.5 text-xs sm:text-sm font-extrabold border-2 border-transparent text-black hover:bg-white cursor-pointer transition flex items-center gap-1.5';
+
+                btnAddStack.classList.remove('hidden');
+                toggleMainBtn.classList.remove('hidden');
+                btnMaximizePizarra.classList.remove('hidden');
+            } else {
+                pizarraEl.classList.add('hidden');
+                explicarEl.classList.remove('hidden');
+                explicarEl.classList.add('flex');
+
+                tabExplicarBtn.className = 'px-3.5 py-1.5 text-xs sm:text-sm font-extrabold border-2 border-black bg-black text-white cursor-pointer transition flex items-center gap-1.5';
+                tabPizarraBtn.className = 'px-3.5 py-1.5 text-xs sm:text-sm font-extrabold border-2 border-transparent text-black hover:bg-white cursor-pointer transition';
+
+                btnAddStack.classList.add('hidden');
+                toggleMainBtn.classList.add('hidden');
+                btnMaximizePizarra.classList.add('hidden');
+                renderPresentation();
+            }
+        }
+
+        function toggleMainPanel() {
+            showMainCode = !showMainCode;
+            const sidebar = document.getElementById('mainCodeSidebar');
+            const sContainer = document.getElementById('stacksContainer');
+            const btn = document.getElementById('toggleMainBtn');
+
+            if (showMainCode) {
+                sidebar.classList.remove('hidden');
+                sContainer.className = 'lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6';
+                btn.textContent = 'Ocultar main()';
+                btn.className = 'px-3 py-1.5 bg-amber-300 hover:bg-amber-400 text-black text-xs font-bold border-2 border-black neo-shadow-sm cursor-pointer transition';
+            } else {
+                sidebar.classList.add('hidden');
+                sContainer.className = 'lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6';
+                btn.textContent = 'Mostrar main()';
+                btn.className = 'px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold border-2 border-black neo-shadow-sm cursor-pointer transition';
+            }
+        }
+
+        function getNextAddress() {
+            return `xxx${addrCounter++}`;
+        }
+
+        function resetAll() {
+            addrCounter = 1;
+            stackCounter = 3;
+            retornoVal = null;
+            usedRetornoVar = false;
+            lastCreatedNodeId = null;
+            poppingState = null;
+
+            // Igual que en 06 - Pilas - Stacks.pdf: xxx1 abajo, xxx2 en medio y xxx3 arriba en la cima (pila = xxx3)
+            const n1 = { id: 'n1', addr: getNextAddress(), info: 10 }; // xxx1 (fondo -> NULL)
+            const n2 = { id: 'n2', addr: getNextAddress(), info: 20 }; // xxx2 (medio -> xxx1)
+            const n3 = { id: 'n3', addr: getNextAddress(), info: 30 }; // xxx3 (cima: pila = xxx3 -> xxx2)
+
+            stacks = [
+                {
+                    id: 'pila1',
+                    label: 'Pila 1 (Original)',
+                    ptrName: 'pila',
+                    nodes: [n3, n2, n1] // índice 0 es la CIMA (xxx3), último índice apunta a NULL (xxx1)
+                },
+                {
+                    id: 'pila2',
+                    label: 'Pila 2 (Auxiliar)',
+                    ptrName: 'pilaAux',
+                    nodes: []
+                }
+            ];
+
+            codeLines = [
+                'push(pila, 10);',
+                'push(pila, 20);',
+                'push(pila, 30);'
+            ];
+
+            setExplanation(
+                '<strong>Idea clave (LIFO):</strong> El último nodo en entrar (<code class="font-bold">xxx3</code>) está en la cima y es el primero en salir con <code class="font-bold">retorno = pop(pila)</code>. ' +
+                'Para no perder el dato, apilalo en la <strong>Pila 2 (Auxiliar)</strong>.'
+            );
+            renderAll();
+        }
+
+        function addNewStack() {
+            while (stacks.some(s => s.id === `pila${stackCounter}`)) {
+                stackCounter++;
+            }
+            const n = stackCounter;
+            const newS = {
+                id: `pila${n}`,
+                label: `Pila ${n} (Auxiliar)`,
+                ptrName: `pila${n}`,
+                nodes: []
+            };
+            stacks.push(newS);
+            setExplanation(
+                `Se declaró una nueva pila secundaria: <code class="font-bold">Nodo *${newS.ptrName} = NULL;</code>`
+            );
+            renderAll();
+        }
+
+        function removeStack(stackId) {
+            if (stacks.length <= 1) return;
+            stacks = stacks.filter(s => s.id !== stackId);
+            renderAll();
+        }
+
+        // PUSH / APILAR: Ingresa siempre arriba de todo (en la CIMA, índice 0)
+        function pushNode(stackId, customValue = null, fromRetorno = false) {
+            if (poppingState) return;
+            const s = stacks.find(item => item.id === stackId);
+            if (!s) return;
+
+            let val = customValue;
+            if (val === null) {
+                const input = document.getElementById(`in_${stackId}`);
+                if (!input) return;
+                const raw = input.value.trim();
+                val = raw === '' ? Math.floor(Math.random() * 90) + 10 : parseInt(raw, 10);
+                if (isNaN(val)) return;
+                input.value = '';
+            }
+
+            const oldTopAddr = s.nodes.length === 0 ? 'NULL' : s.nodes[0].addr;
+            const newAddr = getNextAddress();
+
+            const newNode = {
+                id: 'id_' + Date.now() + '_' + Math.random(),
+                addr: newAddr,
+                info: val
+            };
+
+            lastCreatedNodeId = newNode.id;
+            // En una pila, el nuevo nodo se coloca ARRIBA de todo (nueva cima)
+            s.nodes.unshift(newNode);
+
+            if (fromRetorno) {
+                codeLines.push(`push(${s.ptrName}, retorno); // apila ${val}`);
+            } else {
+                codeLines.push(`push(${s.ptrName}, ${val});`);
+            }
+
+            setExplanation(
+                `<strong>Push en ${s.label}:</strong> 1) Nuevo nodo <code class="font-bold">${newAddr}</code> (info=${val}). ` +
+                `2) Conecta <code class="font-bold">nuevo_nodo->sgte = ${s.ptrName}</code> (apunta a <code class="font-bold">${oldTopAddr}</code>). ` +
+                `3) Mueve la cima: <code class="font-bold">${s.ptrName} = ${newAddr}</code>.`
+            );
+
+            renderAll();
+        }
+
+        function pushRetornoToStack(stackId) {
+            if (retornoVal === null || poppingState) return;
+            const savedVal = retornoVal;
+            const s = stacks.find(item => item.id === stackId);
+            retornoVal = null;
+            pushNode(stackId, savedVal, true);
+            if (s) {
+                setExplanation(
+                    `<strong>¡Dato resguardado en ${s.label}!</strong> Hicimos <code class="font-bold">push(${s.ptrName}, retorno)</code>. ` +
+                    `El valor <strong>${savedVal}</strong> pasó de la caja <code class="font-bold">retorno</code> a la cima de ${s.label} para no perderlo.`
+                );
+            }
+        }
+
+        // POP / DESAPILAR: Sale siempre el nodo superior (la CIMA, índice 0)
+        function popNode(stackId, targetStackId = null) {
+            if (poppingState) return;
+            const s = stacks.find(item => item.id === stackId);
+            if (!s) return;
+
+            if (s.nodes.length === 0) {
+                setExplanation(
+                    `<span class="text-red-700 font-bold">No se puede hacer pop(${s.ptrName}):</span> la pila está vacía (<code class="font-bold">${s.ptrName} == NULL</code>).`
+                );
+                return;
+            }
+
+            const topNode = s.nodes[0];
+            const nextAddr = s.nodes.length === 1 ? 'NULL' : s.nodes[1].addr;
+            const overwrittenWarn = (retornoVal !== null && !targetStackId)
+                ? ` <span class="text-red-600 font-bold">(¡Atención! Se pisó el valor ${retornoVal} que estaba en retorno porque no lo apilaste en una pila auxiliar)</span>.`
+                : '';
+
+            // Paso visual 1: Mostrar aux = xxx3 (flecha celeste), rescatar info en retorno y bajar pila = xxx2
+            retornoVal = topNode.info;
+            poppingState = { stackId, nodeId: topNode.id };
+
+            setExplanation(
+                `<strong>Pop en ${s.label}:</strong> ` +
+                `1) Rescato <code class="font-bold">retorno = ${topNode.info}</code>. ` +
+                `2) <span class="text-sky-700 font-bold">aux = ${topNode.addr}</span>. ` +
+                `3) Muevo <span class="text-green-700 font-bold">${s.ptrName} = aux->sgte (${nextAddr})</span> y libero <code class="font-bold">delete aux;</code>...`
+            );
+
+            renderAll();
+
+            // Paso visual 2: Ejecutar delete aux
+            setTimeout(() => {
+                const removed = s.nodes.shift();
+                poppingState = null;
+                lastCreatedNodeId = null;
+
+                if (targetStackId) {
+                    const dest = stacks.find(item => item.id === targetStackId);
+                    if (dest) {
+                        const newAddr = getNextAddress();
+                        const newNode = {
+                            id: 'id_' + Date.now() + '_' + Math.random(),
+                            addr: newAddr,
+                            info: removed.info
+                        };
+                        lastCreatedNodeId = newNode.id;
+                        dest.nodes.unshift(newNode); // Entra en la cima de la pila destino
+                        usedRetornoVar = true;
+                        retornoVal = null;
+                        codeLines.push(`retorno = pop(${s.ptrName}); // rescata ${removed.info}`);
+                        codeLines.push(`push(${dest.ptrName}, retorno); // lo apila en ${dest.label}`);
+                        setExplanation(
+                            `<strong>Rescate y envío a ${dest.label}:</strong> Se desapiló <code class="font-bold">retorno = ${removed.info}</code> de ${s.label} y se apiló en la cima de ${dest.label} (${newAddr}).`
+                        );
+                    }
+                } else {
+                    usedRetornoVar = true;
+                    codeLines.push(`retorno = pop(${s.ptrName}); // retorno guarda ${removed.info}`);
+                    setExplanation(
+                        `<strong>Dato en <code class="text-green-800">retorno = ${removed.info}</code>:</strong> Se liberó <code class="font-bold">aux</code> (${removed.addr}). ` +
+                        `Ahora podés enviar <code class="font-bold">retorno</code> a una <strong>Pila Auxiliar</strong> para no perderlo antes del próximo <code class="font-bold">pop()</code>.${overwrittenWarn}`
+                    );
+                }
+
+                renderAll();
+            }, 800);
+        }
+
+        function renderRetornoBar() {
+            const valEl = document.getElementById('retornoValue');
+            const boxEl = document.getElementById('retornoBox');
+            const btnsEl = document.getElementById('sendRetornoButtons');
+
+            if (retornoVal !== null) {
+                valEl.textContent = retornoVal;
+                valEl.className = 'text-2xl font-extrabold text-green-800 leading-tight';
+                boxEl.className = 'w-32 h-14 border-[3px] border-green-700 bg-green-50 flex flex-col items-center justify-center relative shadow-sm';
+            } else {
+                valEl.textContent = 'vacío';
+                valEl.className = 'text-sm font-bold text-neutral-400 leading-tight';
+                boxEl.className = 'w-32 h-14 border-[3px] border-green-700 bg-white flex flex-col items-center justify-center relative';
+            }
+
+            btnsEl.innerHTML = stacks.map(s => `
+                <button 
+                    onclick="pushRetornoToStack('${s.id}')"
+                    ${retornoVal === null ? 'disabled' : ''}
+                    class="px-2.5 py-1.5 text-xs font-bold border-2 border-black transition ${
+                        retornoVal !== null
+                            ? 'bg-green-700 hover:bg-green-800 text-white cursor-pointer shadow-sm'
+                            : 'bg-neutral-100 text-neutral-400 border-neutral-300 cursor-not-allowed'
+                    }">
+                    ↳ Apilar retorno (${retornoVal !== null ? retornoVal : 'info'}) en ${s.label}
+                </button>
+            `).join('');
+        }
+
+        function renderStacks() {
+            const container = document.getElementById('stacksContainer');
+
+            container.innerHTML = stacks.map(s => {
+                const otherStacks = stacks.filter(o => o.id !== s.id);
+                const isPoppingThis = poppingState && poppingState.stackId === s.id;
+
+                const sendDirectHtml = otherStacks.map(other => `
+                    <button 
+                        onclick="popNode('${s.id}', '${other.id}')"
+                        ${s.nodes.length === 0 ? 'disabled' : ''}
+                        class="px-2.5 py-1 text-xs font-bold border border-black transition ${
+                            s.nodes.length > 0
+                                ? 'bg-indigo-50 hover:bg-indigo-100 text-indigo-900 cursor-pointer'
+                                : 'bg-neutral-100 text-neutral-400 border-neutral-300 cursor-not-allowed'
+                        }">
+                        Sacar a retorno y apilar en ${other.label} →
+                    </button>
+                `).join('');
+
+                let diagramHtml = '';
+
+                if (s.nodes.length === 0) {
+                    // Pila vacía: pila = NULL ───► NULL
+                    diagramHtml = `
+                        <div class="my-12 flex items-center justify-center">
+                            <div class="flex flex-col items-end mr-3">
+                                <span class="text-sm font-extrabold text-black mb-0.5">${s.ptrName} = NULL</span>
+                                <svg width="105" height="20" viewBox="0 0 105 20" class="overflow-visible">
+                                    <line x1="0" y1="10" x2="98" y2="10" stroke="#15803d" stroke-width="3.2" />
+                                    <polyline points="86,4 100,10 86,16" fill="none" stroke="#15803d" stroke-width="3.2" stroke-linejoin="round" />
+                                </svg>
+                            </div>
+                            <span class="text-3xl font-extrabold tracking-wider text-black">NULL</span>
+                        </div>
+                    `;
+                } else {
+                    const total = s.nodes.length;
+
+                    const nodesListHtml = s.nodes.map((node, idx) => {
+                        const isTop = idx === 0;
+                        const isSecond = idx === 1;
+                        const isAnimated = node.id === lastCreatedNodeId;
+                        const isBeingDeleted = isPoppingThis && isTop;
+
+                        // En estado normal, el puntero verde "pila = xxx3" apunta al índice 0 (cima).
+                        // Durante pop(), "aux = xxx3" apunta al índice 0 y "pila = xxx2" baja al índice 1.
+                        const hasPilaPtr = (!isPoppingThis && isTop) || (isPoppingThis && isSecond);
+
+                        let leftPointersHtml = '';
+
+                        if (isBeingDeleted) {
+                            // Flecha celeste aux = xxx3 ───► tal cual el apunte 06 - Pilas - Stacks.pdf
+                            leftPointersHtml = `
+                                <div class="w-[140px] sm:w-[155px] flex flex-col items-end pr-2.5">
+                                    <span class="text-sm font-extrabold text-black whitespace-nowrap">aux = ${node.addr}</span>
+                                    <svg width="105" height="22" viewBox="0 0 105 22" class="overflow-visible">
+                                        <line x1="0" y1="11" x2="98" y2="11" stroke="#0ea5e9" stroke-width="3.5" />
+                                        <polyline points="86,4 100,11 86,18" fill="none" stroke="#0ea5e9" stroke-width="3.5" stroke-linejoin="round" />
+                                    </svg>
+                                </div>
+                            `;
+                        } else if (hasPilaPtr) {
+                            // Flecha verde pila = xxx3 ───► apuntando a la cima actual
+                            leftPointersHtml = `
+                                <div class="w-[140px] sm:w-[155px] flex flex-col items-end pr-2.5">
+                                    <span class="text-sm font-extrabold text-black whitespace-nowrap mb-0.5">${s.ptrName} = ${node.addr}</span>
+                                    <svg width="105" height="20" viewBox="0 0 105 20" class="overflow-visible">
+                                        <line x1="0" y1="10" x2="98" y2="10" stroke="#15803d" stroke-width="3.2" />
+                                        <polyline points="86,4 100,10 86,16" fill="none" stroke="#15803d" stroke-width="3.2" stroke-linejoin="round" />
+                                    </svg>
+                                </div>
+                            `;
+                        } else {
+                            leftPointersHtml = `<div class="w-[140px] sm:w-[155px]"></div>`;
+                        }
+
+                        return `
+                            <div class="flex flex-col items-center ${isAnimated ? 'animate-nodo' : ''}">
+                                <!-- Recuadro rojo de "nodo a borrar" cuando se hace pop -->
+                                <div class="flex flex-col ${isBeingDeleted ? 'border-[3px] border-red-600 bg-red-50/25 px-3 pt-2 pb-2.5 relative' : ''}">
+                                    <div class="flex items-center">
+                                        ${leftPointersHtml}
+
+                                        <div class="flex flex-col">
+                                            <!-- Dirección arriba a la izquierda (xxx3, xxx2, xxx1) -->
+                                            <span class="text-sm font-extrabold text-black leading-none mb-1">${node.addr}</span>
+
+                                            <!-- Caja dividida [ info | *sgte ] -->
+                                            <div class="nodo-box">
+                                                <div class="nodo-info">
+                                                    ${isBeingDeleted ? `
+                                                        <span class="text-xs text-neutral-300 font-bold leading-none">vacío</span>
+                                                    ` : `
+                                                        <span class="text-[11px] text-neutral-400 font-bold leading-none mb-0.5">info</span>
+                                                        <span class="text-2xl font-extrabold text-black leading-tight">${node.info}</span>
+                                                    `}
+                                                </div>
+                                                <div class="nodo-sgte">
+                                                    *sgte
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    ${isBeingDeleted ? `
+                                        <span class="text-xs font-extrabold text-red-700 mt-1.5">nodo a borrar (delete aux)</span>
+                                    ` : ''}
+                                </div>
+
+                                <!-- Flecha diagonal azul que sale de *sgte hacia el nodo de abajo (o NULL) -->
+                                <div class="flex items-center">
+                                    <div class="w-[140px] sm:w-[155px]"></div>
+                                    <div class="w-[196px] flex justify-center">
+                                        <svg width="196" height="44" viewBox="0 0 196 44" class="overflow-visible">
+                                            <line x1="147" y1="0" x2="98" y2="40" stroke="#3730a3" stroke-width="3" />
+                                            <polyline points="100,27 97,41 111,36" fill="none" stroke="#3730a3" stroke-width="3" stroke-linejoin="round" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    // Si se está borrando el único nodo que quedaba, mostrar que pila pasa a NULL
+                    const singleNodePopFooter = (isPoppingThis && total === 1) ? `
+                        <div class="mt-2 px-3 py-1 bg-emerald-50 border-2 border-black text-xs font-extrabold text-green-800">
+                            ${s.ptrName} = NULL
+                        </div>
+                    ` : '';
+
+                    diagramHtml = `
+                        <div class="flex flex-col items-center py-3">
+                            ${nodesListHtml}
+                            <!-- Texto NULL al final de la última flecha -->
+                            <div class="flex items-center">
+                                <div class="w-[140px] sm:w-[155px]"></div>
+                                <div class="w-[196px] text-center flex flex-col items-center">
+                                    <span class="text-3xl font-extrabold tracking-wider text-black">NULL</span>
+                                    ${singleNodePopFooter}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="bg-white border-2 border-black neo-shadow p-4 sm:p-5 flex flex-col justify-between">
+                        <!-- Controles simples de la pila -->
+                        <div>
+                            <div class="flex items-center justify-between pb-2.5 mb-3.5 border-b-2 border-black">
+                                <div>
+                                    <span class="font-extrabold text-base sm:text-lg">${s.label}</span>
+                                    <span class="text-xs text-neutral-600 ml-1 font-bold">(Nodo *${s.ptrName})</span>
+                                </div>
+                                ${stacks.length > 1 ? `
+                                    <button onclick="removeStack('${s.id}')" class="text-xs text-red-700 hover:underline font-bold cursor-pointer">
+                                        [x] Quitar
+                                    </button>
+                                ` : ''}
+                            </div>
+
+                            <!-- Botones Push y Pop directos -->
+                            <div class="flex flex-wrap items-center gap-2 mb-2.5">
+                                <input 
+                                    id="in_${s.id}" 
+                                    type="number" 
+                                    placeholder="info" 
+                                    class="w-20 border-2 border-black px-2.5 py-1.5 text-sm font-bold focus:outline-none focus:bg-yellow-50"
+                                    onkeydown="if(event.key==='Enter') pushNode('${s.id}')">
+                                
+                                <button 
+                                    onclick="pushNode('${s.id}')" 
+                                    class="px-3 py-1.5 bg-green-700 hover:bg-green-800 text-white text-xs sm:text-sm font-bold border-2 border-black cursor-pointer">
+                                    push (apilar)
+                                </button>
+
+                                <button 
+                                    onclick="popNode('${s.id}')" 
+                                    class="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-xs sm:text-sm font-bold border-2 border-black cursor-pointer">
+                                    retorno = pop()
+                                </button>
+
+                                <button 
+                                    onclick="pushRetornoToStack('${s.id}')"
+                                    ${retornoVal === null ? 'disabled' : ''}
+                                    class="px-2.5 py-1.5 text-xs font-bold border-2 border-black transition ${
+                                        retornoVal !== null
+                                            ? 'bg-amber-400 hover:bg-amber-500 text-black cursor-pointer'
+                                            : 'bg-neutral-100 text-neutral-400 border-neutral-300 cursor-not-allowed'
+                                    }"
+                                    title="Apilar el dato de retorno en esta pila para no perderlo">
+                                    + Apilar retorno (${retornoVal !== null ? retornoVal : 'vacío'}) acá
+                                </button>
+                            </div>
+
+                            <!-- Envío directo a otra pila pasando por retorno -->
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                ${sendDirectHtml}
+                            </div>
+                        </div>
+
+                        <!-- Dibujo de los nodos de la pila -->
+                        <div class="mt-4 pt-4 border-t-2 border-dashed border-neutral-300 flex-1 flex items-center justify-center overflow-x-auto">
+                            ${diagramHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // =====================================================================
+        // DATOS Y RENDERIZADO DEL MODO PRESENTACIÓN ("EXPLICAR PILAS")
+        // =====================================================================
+        const PRESENTATIONS = {
+            push_nodos: {
+                title: 'push (Apilar cuando ya hay nodos)',
+                code: [
+                    'void push(Nodo *&pila, int info){',
+                    '    Nodo *nuevo_nodo = new Nodo();',
+                    '    nuevo_nodo->info = info;',
+                    '    nuevo_nodo->sgte = pila;',
+                    '    pila = nuevo_nodo;',
+                    '}'
+                ],
+                slides: [
+                    {
+                        badge: 'Estado Inicial',
+                        subtitle: 'Pila con 2 nodos: xxx2 (cima) y xxx1 (fondo)',
+                        title: '0) Estado previo antes de insertar el 30',
+                        text: 'Supongamos que la pila ya tiene dos nodos: <strong>xxx1</strong> abajo apuntando a <code>NULL</code> y <strong>xxx2</strong> en la cima apuntado por <strong>pila = xxx2</strong>. Llamamos a <code>push(pila, 30);</code>.',
+                        activeLines: [0],
+                        state: 'p_nodos_0'
+                    },
+                    {
+                        badge: 'Paso 1 de 3',
+                        subtitle: 'Nodo *nuevo_nodo = new Nodo(); nuevo_nodo->info = 30;',
+                        title: '1) Crear el nodo y asignar el dato',
+                        text: 'Reservamos memoria en el Heap para un nuevo nodo (dirección <strong>xxx3</strong>) mediante <code>new Nodo()</code> y guardamos el dato <strong>30</strong> en <code>nuevo_nodo-&gt;info = info;</code>.',
+                        activeLines: [1, 2],
+                        state: 'p_nodos_1'
+                    },
+                    {
+                        badge: 'Paso 2 de 3',
+                        subtitle: 'nuevo_nodo->sgte = pila;',
+                        title: '2) Conectar al *sgte a través del puntero pila',
+                        text: 'Para no perder el resto de la pila, hacemos que el <code>*sgte</code> del nuevo nodo apunte a donde apunta actualmente <code>pila</code> (<strong>xxx2</strong>): <code>nuevo_nodo-&gt;sgte = pila;</code>.',
+                        activeLines: [3],
+                        state: 'p_nodos_2'
+                    },
+                    {
+                        badge: 'Paso 3 de 3',
+                        subtitle: 'pila = nuevo_nodo;',
+                        title: '3) Muevo al puntero pila al inicio de todo',
+                        text: 'Subimos el puntero principal <strong>pila</strong> para que apunte al nuevo nodo en la cima: <code>pila = nuevo_nodo;</code> (ahora <strong>pila = xxx3</strong>). ¡El último que entró quedó arriba de todo!',
+                        activeLines: [4],
+                        state: 'p_nodos_3'
+                    }
+                ]
+            },
+            push_vacia: {
+                title: 'push (Cuando la pila está vacía)',
+                code: [
+                    'void push(Nodo *&pila, int info){',
+                    '    Nodo *nuevo_nodo = new Nodo();',
+                    '    nuevo_nodo->info = info;',
+                    '    nuevo_nodo->sgte = pila;',
+                    '    pila = nuevo_nodo;',
+                    '}'
+                ],
+                slides: [
+                    {
+                        badge: 'Estado Inicial',
+                        subtitle: 'Nodo *pila = NULL;',
+                        title: '0) La pila inicia completamente vacía',
+                        text: 'Al declarar la pila en <code>main()</code>, el puntero <strong>pila</strong> apunta a <strong>NULL</strong>. Llamamos a <code>push(pila, 10);</code>. Notá que el mismo código sirve sin ningún <code>if</code>.',
+                        activeLines: [0],
+                        state: 'p_vacia_0'
+                    },
+                    {
+                        badge: 'Paso 1 de 3',
+                        subtitle: 'Nodo *nuevo_nodo = new Nodo(); nuevo_nodo->info = 10;',
+                        title: '1) Crear el primer nodo y asignar el dato',
+                        text: 'Se crea en memoria dinámica el nodo <strong>xxx1</strong> apuntado por <strong>nuevo_nodo</strong> y se guarda <code>nuevo_nodo-&gt;info = 10;</code>.',
+                        activeLines: [1, 2],
+                        state: 'p_vacia_1'
+                    },
+                    {
+                        badge: 'Paso 2 de 3',
+                        subtitle: 'nuevo_nodo->sgte = pila; // (pila vale NULL)',
+                        title: '2) Conectar *sgte al valor actual de pila (NULL)',
+                        text: 'Al hacer <code>nuevo_nodo-&gt;sgte = pila;</code>, como <code>pila</code> valía <code>NULL</code>, el primer nodo queda automáticamente apuntando a <strong>NULL</strong> en el fondo.',
+                        activeLines: [3],
+                        state: 'p_vacia_2'
+                    },
+                    {
+                        badge: 'Paso 3 de 3',
+                        subtitle: 'pila = nuevo_nodo;',
+                        title: '3) Muevo al puntero pila al nuevo nodo',
+                        text: 'Hacemos <code>pila = nuevo_nodo;</code>. Ahora <strong>pila = xxx1</strong> es la cima de la pila.',
+                        activeLines: [4],
+                        state: 'p_vacia_3'
+                    }
+                ]
+            },
+            pop_varios: {
+                title: 'pop (Desapilar el nodo superior)',
+                code: [
+                    'int pop(Nodo *&pila){',
+                    '    Nodo *aux = pila;',
+                    '    int retorno = aux->info;',
+                    '    pila = aux->sgte;',
+                    '    delete aux;',
+                    '    return retorno;',
+                    '}'
+                ],
+                slides: [
+                    {
+                        badge: 'Estado Inicial',
+                        subtitle: 'Pila con xxx3 (cima), xxx2 y xxx1',
+                        title: '0) Pila antes de hacer pop(pila)',
+                        text: 'Tenemos tres nodos apilados. Como es una estructura <strong>LIFO</strong>, al llamar a <code>pop(pila)</code> debe salir el último que entró: el nodo <strong>xxx3</strong> que está en la cima.',
+                        activeLines: [0],
+                        state: 'pop_v_0'
+                    },
+                    {
+                        badge: 'Pasos 1 y 2',
+                        subtitle: 'Nodo *aux = pila; int retorno = aux->info;',
+                        title: '1 y 2) Creo el puntero aux y rescato el dato',
+                        text: 'Creamos el puntero celeste <strong>aux = pila</strong> (apunta a <strong>xxx3</strong>) y guardamos su información en la variable verde <strong>retorno = aux-&gt;info</strong> (30) para luego retornarla.',
+                        activeLines: [1, 2],
+                        state: 'pop_v_1'
+                    },
+                    {
+                        badge: 'Paso 3 de 5',
+                        subtitle: 'pila = aux->sgte;',
+                        title: '3) Muevo al puntero pila al *sgte',
+                        text: 'Avanzamos el puntero verde <strong>pila</strong> al nodo de abajo usando <code>pila = aux-&gt;sgte;</code>. Ahora <strong>pila = xxx2</strong> mientras <strong>aux = xxx3</strong> retiene el nodo a borrar.',
+                        activeLines: [3],
+                        state: 'pop_v_2'
+                    },
+                    {
+                        badge: 'Pasos 4 y 5',
+                        subtitle: 'delete aux; return retorno;',
+                        title: '4 y 5) Libero la memoria con aux y retorno el valor',
+                        text: 'Eliminamos el nodo <strong>xxx3</strong> del Heap con <code>delete aux;</code> y devolvemos <code>retorno</code> (30) para poder mostrarlo o apilarlo en una <strong>pilaAux</strong>.',
+                        activeLines: [4, 5],
+                        state: 'pop_v_3'
+                    }
+                ]
+            },
+            pop_uno: {
+                title: 'pop (Cuando solo queda 1 nodo)',
+                code: [
+                    'int pop(Nodo *&pila){',
+                    '    Nodo *aux = pila;',
+                    '    int retorno = aux->info;',
+                    '    pila = aux->sgte;',
+                    '    delete aux;',
+                    '    return retorno;',
+                    '}'
+                ],
+                slides: [
+                    {
+                        badge: 'Estado Inicial',
+                        subtitle: 'Último nodo xxx1 en la pila',
+                        title: '0) Pila con un único nodo (xxx1)',
+                        text: 'Solo queda el nodo <strong>xxx1</strong> en la pila, y su puntero <code>*sgte</code> apunta directamente a <strong>NULL</strong>.',
+                        activeLines: [0],
+                        state: 'pop_u_0'
+                    },
+                    {
+                        badge: 'Pasos 1, 2 y 3',
+                        subtitle: 'aux = pila; retorno = aux->info; pila = aux->sgte;',
+                        title: '1 a 3) aux apunta a xxx1, rescato dato y pila pasa a NULL',
+                        text: 'Guardamos <code>aux = xxx1</code> y <code>retorno = 10</code>. Cuando hacemos <code>pila = aux-&gt;sgte;</code>, como el <code>*sgte</code> de <code>xxx1</code> es <code>NULL</code>, el puntero <strong>pila</strong> queda automáticamente en <strong>NULL</strong>.',
+                        activeLines: [1, 2, 3],
+                        state: 'pop_u_1'
+                    },
+                    {
+                        badge: 'Pasos 4 y 5',
+                        subtitle: 'delete aux; return retorno;',
+                        title: '4 y 5) Libero aux y la pila queda vacía',
+                        text: 'Ejecutamos <code>delete aux;</code> y retornamos <strong>10</strong>. La pila volvió limpiamente a su estado inicial <code>pila = NULL</code>.',
+                        activeLines: [4, 5],
+                        state: 'pop_u_2'
+                    }
+                ]
+            }
+        };
+
+        function selectPresentation(key) {
+            currentPresKey = key;
+            currentSlideIdx = 0;
+            renderPresentation();
+        }
+
+        function prevSlide() {
+            if (currentSlideIdx > 0) {
+                currentSlideIdx--;
+                renderPresentation();
+            }
+        }
+
+        function nextSlide() {
+            const pres = PRESENTATIONS[currentPresKey];
+            if (pres && currentSlideIdx < pres.slides.length - 1) {
+                currentSlideIdx++;
+                renderPresentation();
+            }
+        }
+
+        function goToSlide(idx) {
+            currentSlideIdx = idx;
+            renderPresentation();
+        }
+
+        function drawPresentationNode({ addr, info, emptyInfo = false, leftLabel = '', arrowToNull = true, arrowColor = '#3730a3', isRedBox = false, showArrow = true }) {
+            return `
+                <div class="flex flex-col items-center">
+                    <div class="flex flex-col ${isRedBox ? 'border-[3px] border-red-600 bg-red-50/30 px-3 pt-2 pb-2.5' : ''}">
+                        <div class="flex items-center">
+                            <div class="w-[155px] flex flex-col items-end pr-2.5">
+                                ${leftLabel}
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-sm font-extrabold text-black leading-none mb-1">${addr}</span>
+                                <div class="nodo-box">
+                                    <div class="nodo-info">
+                                        ${emptyInfo
+                                            ? `<span class="text-xs text-neutral-300 font-bold">vacío</span>`
+                                            : `<span class="text-[11px] text-neutral-400 font-bold leading-none mb-0.5">info</span><span class="text-2xl font-extrabold text-black leading-tight">${info}</span>`
+                                        }
+                                    </div>
+                                    <div class="nodo-sgte">*sgte</div>
+                                </div>
+                            </div>
+                        </div>
+                        ${isRedBox ? `<span class="text-xs font-extrabold text-red-700 mt-1.5">nodo a borrar</span>` : ''}
+                    </div>
+                    ${showArrow ? `
+                        <div class="flex items-center">
+                            <div class="w-[155px]"></div>
+                            <div class="w-[196px] flex justify-center">
+                                <svg width="196" height="44" viewBox="0 0 196 44" class="overflow-visible">
+                                    <line x1="147" y1="0" x2="98" y2="40" stroke="${arrowColor}" stroke-width="3" />
+                                    <polyline points="100,27 97,41 111,36" fill="none" stroke="${arrowColor}" stroke-width="3" stroke-linejoin="round" />
+                                </svg>
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${arrowToNull ? `
+                        <div class="flex items-center">
+                            <div class="w-[155px]"></div>
+                            <div class="w-[196px] text-center">
+                                <span class="text-3xl font-extrabold tracking-wider text-black">NULL</span>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function getStackPtrHtml(kind, addr = '') {
+            if (kind === 'pila') {
+                return `
+                    <span class="text-sm font-extrabold text-black whitespace-nowrap mb-0.5">pila = ${addr}</span>
+                    <svg width="105" height="20" viewBox="0 0 105 20" class="overflow-visible">
+                        <line x1="0" y1="10" x2="98" y2="10" stroke="#15803d" stroke-width="3.2" />
+                        <polyline points="86,4 100,10 86,16" fill="none" stroke="#15803d" stroke-width="3.2" stroke-linejoin="round" />
+                    </svg>
+                `;
+            }
+            if (kind === 'nuevo') {
+                return `
+                    <span class="px-1.5 py-0.5 border-2 border-sky-600 bg-sky-50 text-xs font-extrabold text-sky-900 mb-0.5">nuevo_nodo</span>
+                    <svg width="105" height="20" viewBox="0 0 105 20" class="overflow-visible">
+                        <line x1="0" y1="10" x2="98" y2="10" stroke="#0284c7" stroke-width="3.2" />
+                        <polyline points="86,4 100,10 86,16" fill="none" stroke="#0284c7" stroke-width="3.2" stroke-linejoin="round" />
+                    </svg>
+                `;
+            }
+            if (kind === 'aux') {
+                return `
+                    <span class="text-sm font-extrabold text-black whitespace-nowrap mb-0.5">aux = ${addr}</span>
+                    <svg width="105" height="20" viewBox="0 0 105 20" class="overflow-visible">
+                        <line x1="0" y1="10" x2="98" y2="10" stroke="#0ea5e9" stroke-width="3.5" />
+                        <polyline points="86,4 100,10 86,16" fill="none" stroke="#0ea5e9" stroke-width="3.5" stroke-linejoin="round" />
+                    </svg>
+                `;
+            }
+            return '';
+        }
+
+        function drawRetornoBanner(val) {
+            return `
+                <div class="flex items-center justify-center mb-5">
+                    <div class="flex flex-col items-center mr-2">
+                        <span class="text-sm font-extrabold text-black leading-none mb-1">retorno</span>
+                        <svg width="85" height="18" viewBox="0 0 85 18" class="overflow-visible">
+                            <line x1="0" y1="9" x2="78" y2="9" stroke="#15803d" stroke-width="3.2" />
+                            <polyline points="68,3 80,9 68,15" fill="none" stroke="#15803d" stroke-width="3.2" stroke-linejoin="round" />
+                        </svg>
+                    </div>
+                    <div class="w-36 h-14 border-[3px] border-green-700 bg-green-50 flex flex-col items-center justify-center">
+                        <span class="text-[10px] text-neutral-500 font-bold leading-none">info</span>
+                        <span class="text-2xl font-extrabold text-green-800">${val}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function buildPresentationDiagram(state) {
+            switch (state) {
+                case 'p_nodos_0':
+                    return `
+                        <div class="flex flex-col items-center">
+                            ${drawPresentationNode({ addr: 'xxx2', info: 20, leftLabel: getStackPtrHtml('pila', 'xxx2'), arrowToNull: false })}
+                            ${drawPresentationNode({ addr: 'xxx1', info: 10, leftLabel: '', arrowToNull: true })}
+                        </div>
+                    `;
+                case 'p_nodos_1':
+                    return `
+                        <div class="flex flex-col items-center gap-5">
+                            <div class="pb-3 border-b-2 border-dashed border-neutral-300">
+                                ${drawPresentationNode({ addr: 'xxx3', info: 30, leftLabel: getStackPtrHtml('nuevo'), showArrow: false, arrowToNull: false })}
+                            </div>
+                            <div class="flex flex-col items-center">
+                                ${drawPresentationNode({ addr: 'xxx2', info: 20, leftLabel: getStackPtrHtml('pila', 'xxx2'), arrowToNull: false })}
+                                ${drawPresentationNode({ addr: 'xxx1', info: 10, leftLabel: '', arrowToNull: true })}
+                            </div>
+                        </div>
+                    `;
+                case 'p_nodos_2':
+                    return `
+                        <div class="flex flex-col items-center">
+                            ${drawPresentationNode({ addr: 'xxx3', info: 30, leftLabel: getStackPtrHtml('nuevo'), arrowToNull: false })}
+                            ${drawPresentationNode({ addr: 'xxx2', info: 20, leftLabel: getStackPtrHtml('pila', 'xxx2'), arrowToNull: false })}
+                            ${drawPresentationNode({ addr: 'xxx1', info: 10, leftLabel: '', arrowToNull: true })}
+                        </div>
+                    `;
+                case 'p_nodos_3':
+                    return `
+                        <div class="flex flex-col items-center">
+                            ${drawPresentationNode({ addr: 'xxx3', info: 30, leftLabel: getStackPtrHtml('pila', 'xxx3'), arrowToNull: false })}
+                            ${drawPresentationNode({ addr: 'xxx2', info: 20, leftLabel: '', arrowToNull: false })}
+                            ${drawPresentationNode({ addr: 'xxx1', info: 10, leftLabel: '', arrowToNull: true })}
+                        </div>
+                    `;
+
+                case 'p_vacia_0':
+                    return `
+                        <div class="my-12 flex items-center justify-center">
+                            <div class="flex flex-col items-end mr-3">
+                                <span class="text-sm font-extrabold text-black mb-0.5">pila = NULL</span>
+                                <svg width="105" height="20" viewBox="0 0 105 20"><line x1="0" y1="10" x2="98" y2="10" stroke="#15803d" stroke-width="3.2"/><polyline points="86,4 100,10 86,16" fill="none" stroke="#15803d" stroke-width="3.2"/></svg>
+                            </div>
+                            <span class="text-3xl font-extrabold text-black">NULL</span>
+                        </div>
+                    `;
+                case 'p_vacia_1':
+                    return drawPresentationNode({ addr: 'xxx1', info: 10, leftLabel: getStackPtrHtml('nuevo'), showArrow: false, arrowToNull: false });
+                case 'p_vacia_2':
+                    return drawPresentationNode({ addr: 'xxx1', info: 10, leftLabel: getStackPtrHtml('nuevo'), showArrow: true, arrowToNull: true });
+                case 'p_vacia_3':
+                    return drawPresentationNode({ addr: 'xxx1', info: 10, leftLabel: getStackPtrHtml('pila', 'xxx1'), showArrow: true, arrowToNull: true });
+
+                case 'pop_v_0':
+                    return `
+                        <div class="flex flex-col items-center">
+                            ${drawPresentationNode({ addr: 'xxx3', info: 30, leftLabel: getStackPtrHtml('pila', 'xxx3'), arrowToNull: false })}
+                            ${drawPresentationNode({ addr: 'xxx2', info: 20, leftLabel: '', arrowToNull: false })}
+                            ${drawPresentationNode({ addr: 'xxx1', info: 10, leftLabel: '', arrowToNull: true })}
+                        </div>
+                    `;
+                case 'pop_v_1':
+                    return `
+                        <div class="flex flex-col items-center">
+                            ${drawRetornoBanner(30)}
+                            ${drawPresentationNode({ addr: 'xxx3', info: 30, emptyInfo: true, leftLabel: getStackPtrHtml('aux', 'xxx3'), isRedBox: true, arrowToNull: false })}
+                            ${drawPresentationNode({ addr: 'xxx2', info: 20, leftLabel: '', arrowToNull: false })}
+                            ${drawPresentationNode({ addr: 'xxx1', info: 10, leftLabel: '', arrowToNull: true })}
+                        </div>
+                    `;
+                case 'pop_v_2':
+                    return `
+                        <div class="flex flex-col items-center">
+                            ${drawRetornoBanner(30)}
+                            ${drawPresentationNode({ addr: 'xxx3', info: 30, emptyInfo: true, leftLabel: getStackPtrHtml('aux', 'xxx3'), isRedBox: true, arrowToNull: false })}
+                            ${drawPresentationNode({ addr: 'xxx2', info: 20, leftLabel: getStackPtrHtml('pila', 'xxx2'), arrowToNull: false })}
+                            ${drawPresentationNode({ addr: 'xxx1', info: 10, leftLabel: '', arrowToNull: true })}
+                        </div>
+                    `;
+                case 'pop_v_3':
+                    return `
+                        <div class="flex flex-col items-center">
+                            ${drawRetornoBanner(30)}
+                            ${drawPresentationNode({ addr: 'xxx2', info: 20, leftLabel: getStackPtrHtml('pila', 'xxx2'), arrowToNull: false })}
+                            ${drawPresentationNode({ addr: 'xxx1', info: 10, leftLabel: '', arrowToNull: true })}
+                        </div>
+                    `;
+
+                case 'pop_u_0':
+                    return drawPresentationNode({ addr: 'xxx1', info: 10, leftLabel: getStackPtrHtml('pila', 'xxx1'), arrowToNull: true });
+                case 'pop_u_1':
+                    return `
+                        <div class="flex flex-col items-center">
+                            ${drawRetornoBanner(10)}
+                            ${drawPresentationNode({ addr: 'xxx1', info: 10, emptyInfo: true, leftLabel: getStackPtrHtml('aux', 'xxx1'), isRedBox: true, arrowToNull: true })}
+                            <div class="mt-3 px-3 py-1.5 bg-neutral-100 border-2 border-black text-xs font-extrabold">
+                                pila = aux-&gt;sgte; &nbsp;(pila = NULL)
+                            </div>
+                        </div>
+                    `;
+                case 'pop_u_2':
+                    return `
+                        <div class="flex flex-col items-center">
+                            ${drawRetornoBanner(10)}
+                            <div class="my-6 flex items-center justify-center">
+                                <div class="flex flex-col items-end mr-3">
+                                    <span class="text-sm font-extrabold text-black mb-0.5">pila = NULL</span>
+                                    <svg width="105" height="20" viewBox="0 0 105 20"><line x1="0" y1="10" x2="98" y2="10" stroke="#15803d" stroke-width="3.2"/><polyline points="86,4 100,10 86,16" fill="none" stroke="#15803d" stroke-width="3.2"/></svg>
+                                </div>
+                                <span class="text-3xl font-extrabold text-black">NULL</span>
+                            </div>
+                        </div>
+                    `;
+                default:
+                    return '';
+            }
+        }
+
+        function renderPresentation() {
+            const pres = PRESENTATIONS[currentPresKey];
+            if (!pres) return;
+
+            ['push_nodos', 'push_vacia', 'pop_varios', 'pop_uno'].forEach(k => {
+                const btn = document.getElementById(`presBtn_${k}`);
+                if (!btn) return;
+                if (k === currentPresKey) {
+                    btn.className = 'px-3 py-2 text-xs sm:text-sm font-extrabold border-2 border-black bg-emerald-700 text-white neo-shadow-sm cursor-pointer transition';
+                } else {
+                    btn.className = 'px-3 py-2 text-xs sm:text-sm font-extrabold border-2 border-black bg-white hover:bg-neutral-100 text-black cursor-pointer transition';
+                }
+            });
+
+            const slide = pres.slides[currentSlideIdx];
+            document.getElementById('presSlideBadge').textContent = slide.badge;
+            document.getElementById('presSlideSubtitle').textContent = slide.subtitle;
+            document.getElementById('presStepTitle').textContent = slide.title;
+            document.getElementById('presStepText').innerHTML = slide.text;
+
+            document.getElementById('presDiagramCanvas').innerHTML = buildPresentationDiagram(slide.state);
+
+            const codeEl = document.getElementById('presCodeHighlight');
+            codeEl.innerHTML = pres.code.map((line, idx) => {
+                const isActive = slide.activeLines.includes(idx);
+                return `<div class="px-2 py-0.5 whitespace-pre ${isActive ? 'bg-amber-400 text-black font-extrabold border-l-4 border-emerald-700' : 'text-neutral-300'}">${line.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>`;
+            }).join('');
+
+            const dotsEl = document.getElementById('presStepDots');
+            dotsEl.innerHTML = pres.slides.map((_, idx) => `
+                <button onclick="goToSlide(${idx})" class="w-7 h-7 text-xs font-extrabold border-2 border-black cursor-pointer ${
+                    idx === currentSlideIdx ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-200'
+                }">${idx}</button>
+            `).join('');
+
+            document.getElementById('presPrevBtn').disabled = currentSlideIdx === 0;
+            document.getElementById('presNextBtn').disabled = currentSlideIdx === pres.slides.length - 1;
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && isPizarraMaximized) {
+                toggleMaximizePizarra();
+                return;
+            }
+            if (currentView !== 'explicar') return;
+            if (e.key === 'ArrowRight') nextSlide();
+            if (e.key === 'ArrowLeft') prevSlide();
+        });
+
+        function renderAll() {
+            renderRetornoBar();
+            renderStacks();
+            renderCode();
+        }
+
+        function renderCode() {
+            const box = document.getElementById('codeBox');
+            const decls = stacks.map(s => `    Nodo *${s.ptrName} = NULL;`).join('\n');
+            const retLine = usedRetornoVar ? `\n    int retorno;` : '';
+            const steps = codeLines.map(l => `    ${l}`).join('\n');
+
+            box.textContent = `int main(){\n${decls}${retLine}\n\n${steps}\n\n    return 0;\n}`;
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function setExplanation(html) {
+            const el = document.getElementById('stepExplanation');
+            if (el) el.innerHTML = html;
+        }
+
+        function clearCodeHistory() {
+            codeLines = [];
+            renderCode();
+        }
+
+        function toggleApunteModal() {
+            const modal = document.getElementById('apunteModal');
+            modal.classList.toggle('hidden');
+        }
+
+        function copyCode() {
+            const decls = stacks.map(s => `    Nodo *${s.ptrName} = NULL;`).join('\n');
+            const retLine = usedRetornoVar ? `\n    int retorno;` : '';
+            const steps = codeLines.map(l => `    ${l}`).join('\n');
+
+            const fullCpp = `#include <iostream> //entrada y salida de datos
+#include <cstring> // manejo de cadenas de texto
+#include <cstdio> // manejo de archivos
+using namespace std;
+
+struct Nodo{
+    int info;
+    Nodo *sgte;
+};
+
+void push(Nodo *&, int);
+int pop(Nodo *&);
+
+int main(){
+${decls}${retLine}
+
+${steps}
+
+    return 0;
+}
+
+void push(Nodo *&pila, int info){
+    Nodo *nuevo_nodo = new Nodo();
+    nuevo_nodo->info = info;
+    nuevo_nodo->sgte = pila;
+    pila = nuevo_nodo;
+}
+
+int pop(Nodo *&pila){
+    Nodo *aux = pila;
+    int retorno = aux->info;
+    pila = aux->sgte;
+    delete aux;
+    return retorno;
+}`;
+
+            const temp = document.createElement('textarea');
+            temp.value = fullCpp;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+
+            const btn = document.getElementById('copyBtn');
+            btn.textContent = '¡Copiado!';
+            setTimeout(() => { btn.textContent = 'Copiar C++'; }, 1500);
+        }
+
+        window.addEventListener('DOMContentLoaded', resetAll);
+    </script>
+</body>
+</html>
